@@ -35,23 +35,67 @@ void line(int ax, int ay, int bx, int by, TGAImage& framebuffer, TGAColor color)
 }
 
 int main(int argc, char** argv) {
-    constexpr int width  = 64;
-    constexpr int height = 64;
-    TGAImage framebuffer(width, height, TGAImage::RGB);
+    constexpr int width  = 800;
+    constexpr int height = 600;
+
+    if (!SDL_Init(SDL_INIT_VIDEO))
+    {
+        SDL_Log("SDL_Init failed: %s",SDL_GetError());
+        return 1;
+    }
+
+    SDL_Window* window = SDL_CreateWindow("Blaze", width, height,0);
+    SDL_SetWindowSurfaceVSync(window,1);
+
+    TGAImage framebuffer(width, height, TGAImage::RGBA);
+
+    SDL_Surface* fb = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_BGRA32,
+        framebuffer.buffer(), width * 4);
 
     int ax =  7, ay =  3;
     int bx = 12, by = 37;
     int cx = 62, cy = 53;
 
-    line(ax,ay,bx,by,framebuffer,yellow);
-    line(bx,by,cx,cy,framebuffer,blue);
-    line(cx,cy,ax,ay,framebuffer,red);
+   
 
-    framebuffer.set(ax, ay, white);
-    framebuffer.set(bx, by, white);
-    framebuffer.set(cx, cy, white);
+    bool running = true;
+    while (running)
+    {
+        // handeling input
+        SDL_Event e;
+        while (SDL_PollEvent(&e))
+        {
+            if (e.type == SDL_EVENT_QUIT) {
+                running = false;
+            }
+        }
 
-    framebuffer.write_tga_file("framebuffer.tga");
+        // doing rendering things from here
+        line(ax, ay, bx, by, framebuffer, yellow);
+        line(bx, by, cx, cy, framebuffer, blue);
+        line(cx, cy, ax, ay, framebuffer, red);
+
+        framebuffer.set(ax, ay, white);
+        framebuffer.set(bx, by, white);
+        framebuffer.set(cx, cy, white);
+
+        SDL_Surface* win = SDL_GetWindowSurface(window);
+        if (!SDL_BlitSurfaceScaled(fb, nullptr, win, nullptr, SDL_SCALEMODE_NEAREST))
+        {
+            SDL_Log("Blit error: %s", SDL_GetError());
+            return 1;
+        }
+
+        if (!SDL_UpdateWindowSurface(window))
+        {
+            SDL_Log("SDL update window surface error: %s", SDL_GetError());
+            return 1;
+        }
+    }
+
+    SDL_DestroySurface(fb);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }
 
